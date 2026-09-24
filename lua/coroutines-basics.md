@@ -203,21 +203,6 @@ true	Ready
 true	Done: Scripting
 ```
 
-### Error Handling Difference
-
-When an error occurs inside a wrapped coroutine, it propagates up as a runtime error rather than returning `false`:
-
-```lua
--- coroutine.create captures errors safely:
-local co = coroutine.create(function() error("Something went wrong!") end)
-local ok, err = coroutine.resume(co)
-print(ok, err) -- false, "input:1: Something went wrong!"
-
--- coroutine.wrap raises an unhandled error:
-local wrapped = coroutine.wrap(function() error("Something went wrong!") end)
--- wrapped() -- This line would crash the script unless wrapped in pcall()!
-```
-
 ### Idiomatic Use Case: Custom Iterators
 
 `coroutine.wrap` is frequently used to construct clean, custom iterators for `for ... in` loops because the returned function fits the iterator pattern natively:
@@ -235,6 +220,21 @@ end
 for num in range(1, 3) do
     print("Number:", num)
 end
+```
+
+### Error Handling Difference
+
+When an error occurs inside a wrapped coroutine, it propagates up as a runtime error rather than returning `false`:
+
+```lua
+-- coroutine.create captures errors safely:
+local co = coroutine.create(function() error("Something went wrong!") end)
+local ok, err = coroutine.resume(co)
+print(ok, err) -- false, "input:1: Something went wrong!"
+
+-- coroutine.wrap raises an unhandled error:
+local wrapped = coroutine.wrap(function() error("Something went wrong!") end)
+-- wrapped() -- This line would crash the script unless wrapped in pcall()!
 ```
 
 ### Handling runtime errors using pcall
@@ -313,6 +313,48 @@ end)
 local ok, status, payload = pcall(safe_worker, {}) -- passing empty table (data.value is nil)
 print("Outer call succeeded?", ok)
 print("Inner execution status:", status, "| Details:", payload)
+```
+
+### When to use pcall in `coroutine.create()`
+
+In general, use `coroutine.create` instead of `coroutine.wrap` for better handling of errors.
+
+When using ⁠coroutine.create⁠, ⁠coroutine.resume()⁠ automatically catches any unhandled runtime error inside the coroutine and returns ⁠false⁠ plus the error message. You don't need ⁠pcall⁠ or internal error wrappers.
+
+```lua
+local worker = coroutine.create(function(data)
+    -- If data.value is nil, this raises a runtime error trapped by resume()
+    return data.value * 2
+end)
+
+-- resume() inherently acts like pcall
+local ok, result = coroutine.resume(worker, {}) 
+
+print("Execution succeeded?", ok) -- false
+print("Result / Error:", result)     -- "input:3: attempt to perform arithmetic on a nil value"
+```
+
+The only time you would combine ⁠pcall⁠ inside a coroutine is when you want the coroutine to recover from an error and keep running across future yields/resumes.
+If an unhandled error reaches ⁠coroutine.resume⁠, the coroutine's status permanently becomes ⁠"dead"⁠. If you want a long-running worker thread to log an error, ignore a bad input, and wait for the next job without dying, you use ⁠pcall⁠ inside its loop:
+
+```lua
+local resilient_worker = coroutine.create(function()
+    while true do
+        local data = coroutine.yield("ready")
+        
+        -- pcall keeps the coroutine alive even if a job fails
+        local ok, res = pcall(function() return data.value * 2 end)
+        if ok then
+            print("Processed:", res)
+        else
+            print("Job failed safely, staying alive. Error:", res)
+        end
+    end
+end)
+
+coroutine.resume(resilient_worker) -- start worker
+coroutine.resume(resilient_worker, {}) -- fails, but coroutine stays alive!
+coroutine.resume(resilient_worker, { value = 10 }) -- succeeds! Output: Processed: 20
 ```
 
 ## Example: task scheduler using coroutines
