@@ -195,6 +195,14 @@ local result = worker("Scripting")
 print(result) -- "Done: Scripting"
 ```
 
+**Output of both examples:**
+
+```plaintext
+Hello Lua User
+true	Ready
+true	Done: Scripting
+```
+
 ### Error Handling Difference
 
 When an error occurs inside a wrapped coroutine, it propagates up as a runtime error rather than returning `false`:
