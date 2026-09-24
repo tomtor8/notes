@@ -26,8 +26,8 @@ Lua's `string.format()` works like the C standard library function `printf()`, u
 
 **Pointers & Literal Percent**
 
-> - **%p**: Formats a pointer or table/function address in memory (useful for debugging object references).
-> - **%%**: Escapes a literal percent sign (%).
+- **%p**: Formats a pointer or table/function address in memory (useful for debugging object references).
+- **%%**: Escapes a literal percent sign (%).
 
 ## Flags
 
