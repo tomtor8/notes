@@ -199,8 +199,8 @@ print(result) -- "Done: Scripting"
 
 ```plaintext
 Hello Lua User
-true	Ready
-true	Done: Scripting
+true    Ready
+true    Done: Scripting
 ```
 
 ### Idiomatic Use Case: Custom Iterators
@@ -282,8 +282,8 @@ print("--- Script continues running smoothly ---")
 **Output**
 
 ```plaintext
-Step 1: Received	10	20
-[Main] Success:	Step 1 complete
+Step 1: Received    10  20
+[Main] Success: Step 1 complete
 --- Resuming Coroutine ---
 Step 2: Performing risky operation...
 [Main] Error captured safely:
@@ -319,7 +319,7 @@ print("Inner execution status:", status, "| Details:", payload)
 
 In general, use `coroutine.create` instead of `coroutine.wrap` for better handling of errors.
 
-When using ⁠coroutine.create⁠, ⁠coroutine.resume()⁠ automatically catches any unhandled runtime error inside the coroutine and returns ⁠false⁠ plus the error message. You don't need ⁠pcall⁠ or internal error wrappers.
+When using `coroutine.create`, `coroutine.resume()` automatically catches any unhandled runtime error inside the coroutine and returns `false` plus the error message. You don't need `pcall` or internal error wrappers.
 
 ```lua
 local worker = coroutine.create(function(data)
@@ -328,20 +328,20 @@ local worker = coroutine.create(function(data)
 end)
 
 -- resume() inherently acts like pcall
-local ok, result = coroutine.resume(worker, {}) 
+local ok, result = coroutine.resume(worker, {})
 
 print("Execution succeeded?", ok) -- false
 print("Result / Error:", result)     -- "input:3: attempt to perform arithmetic on a nil value"
 ```
 
-The only time you would combine ⁠pcall⁠ inside a coroutine is when you want the coroutine to recover from an error and keep running across future yields/resumes.
-If an unhandled error reaches ⁠coroutine.resume⁠, the coroutine's status permanently becomes ⁠"dead"⁠. If you want a long-running worker thread to log an error, ignore a bad input, and wait for the next job without dying, you use ⁠pcall⁠ inside its loop:
+The only time you would combine `pcall` inside a coroutine is when you want the coroutine to recover from an error and keep running across future yields/resumes.
+If an unhandled error reaches `coroutine.resume`, the coroutine's status permanently becomes "dead". If you want a long-running worker thread to log an error, ignore a bad input, and wait for the next job without dying, you use `pcall` inside its loop:
 
 ```lua
 local resilient_worker = coroutine.create(function()
     while true do
         local data = coroutine.yield("ready")
-        
+
         -- pcall keeps the coroutine alive even if a job fails
         local ok, res = pcall(function() return data.value * 2 end)
         if ok then
@@ -364,7 +364,6 @@ coroutine.resume(resilient_worker, { value = 10 }) -- succeeds! Output: Processe
 ### Basic Task Scheduler Implementation
 
 This example builds a simple cooperative scheduler with a time-delay mechanism (`wait(seconds)`).
-
 
 ```lua
 local Scheduler = {
@@ -428,7 +427,6 @@ end
 
 Here, two separate tasks run concurrently without blocking each other:
 
-
 ```lua
 -- Task 1: Runs every 0.5 seconds
 Scheduler.spawn(function()
@@ -453,7 +451,6 @@ Scheduler.run()
 **Output**
 
 Notice how Worker B ticks multiple times in between Worker A's steps, operating non-blockingly within the single-threaded process:
-
 
 ```plaintext
 [05:38:45] Worker A - Step 1
