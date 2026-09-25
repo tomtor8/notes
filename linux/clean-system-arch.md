@@ -1,8 +1,28 @@
-# Intro
+# System Maintanance and Cleaning for Arch Linux
 
-- see the `clean-system-fedora.md` for general info
+## Clear Trash
 
-"Pacman" refers to the package manager used in Arch Linux and its derivatives, like Manjaro or, in your case, Fedora with a custom Pacman setup (though Fedora typically uses `dnf`). Assuming you're referring to `pacman` as it's used on an Arch-based system (perhaps you meant to say you use Arch instead of Fedora, or you have a specific setup), here's how to clean it up:
+The "Trash" or "Recycle Bin" is where deleted files go before being permanently removed.
+
+**Command Line Method:**
+
+- To empty the current user's trash:
+
+  ```bash
+  rm -rf ~/.local/share/Trash/*
+  ```
+
+- or manually remove the contens of the directories in Trash
+
+## Clear User Cache
+
+Many applications store cached data in your user's home directory.
+
+**Command Line Method:**
+
+- This is often found in `~/.cache`. While you can delete everything in there, it's safer to delete contents of specific subdirectories, or at least be aware that some applications might rebuild their cache upon next launch, which can take time.
+
+## Pacman cleanup
 
 Pacman cleanup generally involves two main areas:
 
@@ -11,7 +31,7 @@ Pacman cleanup generally involves two main areas:
 
 Here are the common commands and methods for cleaning up Pacman:
 
-### 1 Cleaning the Package Cache
+## Cleaning the Package Cache
 
 You have a few options here, depending on how aggressive you want to be:
 
@@ -43,9 +63,9 @@ You have a few options here, depending on how aggressive you want to be:
     ```bash
     sudo paccache -r
     ```
-  - **Keep only the last one version of all installed packages:**
+  - **Keep the last two versions of all installed packages:**
     ```bash
-    sudo paccache -rk 1
+    sudo paccache -rk2
     ```
   - **Remove all cached versions of uninstalled packages:**
     ```bash
@@ -58,7 +78,7 @@ You have a few options here, depending on how aggressive you want to be:
 
   Many users also set up a systemd timer to run `paccache -r` periodically (e.g., weekly) to automate cache cleanup.
 
-### 2 Removing Orphaned Packages
+## Removing Orphaned Packages
 
 Orphaned packages are dependencies that are no longer required by any explicitly installed package.
 
@@ -85,10 +105,61 @@ Orphaned packages are dependencies that are no longer required by any explicitly
     - `-s`: Remove dependencies that are no longer required by any other installed package (recursive removal).
   - `$()`: Command substitution, which runs `pacman -Qdtq` and uses its output as arguments for `pacman -Rns`.
 
-  **Important:** Always review the list of packages `pacman` intends to remove before confirming with `y`. Occasionally, a package might be listed as an orphan that you still want to keep (e.g., if you use a program that relies on it but doesn't explicitly declare it as a dependency in its `PKGBUILD`). If you want to keep a package that's listed as an orphan, you can mark it as explicitly installed:
+  **Important:** Always review the list of packages `pacman` intends to remove before confirming with `y`. Occasionally, a package might be listed as an orphan that you still want to keep (e.g., if you use a program that relies on it but doesn't explicitly declare it as a dependency in its `PKGBUILD`).
 
-  ```bash
-  sudo pacman -D --asexplicit <package_name>
-  ```
+## Keep an ophraned package by making it explicit
 
-By regularly performing these cleanup steps, especially using `paccache -r` and removing orphaned packages, you can keep your Pacman system tidy and free up disk space.
+If you want to keep a package that's listed as an orphan, you can mark it as explicitly installed:
+
+```bash
+sudo pacman -D --asexplicit <package_name>
+```
+
+## Analyze disk usage
+
+```bash
+du -sh /*
+```
+
+## Manage system logs
+
+```bash
+sudo journalctl --vacuum-size=500M
+# or
+sudo journalctl --vacuum-time=7d
+```
+
+### Permanent solution
+
+Edit **/etc/systemd/journald.conf** and set **SystemMaxUse=500M**, then restart with `sudo systemctl restart systemd-journald`. This is critical on every server because unbounded journal growth sneaks up at the worst possible time.
+
+## How to Analyze Boot Time with systemd-analyze
+
+Boot time degrades slowly until you suddenly notice your machine takes 30 seconds to reach the desktop. I check it monthly using three commands.
+
+### Check Overall Boot Time
+
+`systemd-analyze` time breaks down the boot into kernel, initrd, and userspace phases.
+
+### Identify the Slowest Services
+
+`systemd-analyze blame` shows which services are taking the longest to start.
+
+Running `systemd-analyze critical-chain` shows the actual dependency chain. This is more useful than blame because it shows which services are on the critical path versus those that start in parallel.
+
+> [!NOTE]
+> You can generate a visual SVG timeline of your boot process with `systemd-analyze plot > boot.svg`. Open the resulting file in any web browser to see a detailed Gantt chart of every service, its start time, and its duration.
+
+### How to Manage Systemd Services
+
+Every application that registers a systemd service adds to your boot time. Audit enabled services on every machine. `systemctl list-unit-files --state=enabled --type=service` shows everything that starts at boot. Disable any service not actively used. If the system does not have a printer, run `sudo systemctl disable cups.service`. If Bluetooth peripherals are not needed, disable bluetooth.service.
+
+## How to clean temporary files
+
+On Arch, run:
+
+```bash
+sudo find /tmp -type f -atime +7 -delete
+```
+
+The find command deletes files in `/tmp` that have not been accessed in more than 7 days. This rarely causes issues because genuinely important temporary files are accessed frequently or stored elsewhere. That said, always check what is in `/tmp` before running this on an unfamiliar machine.
