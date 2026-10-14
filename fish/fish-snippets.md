@@ -156,3 +156,30 @@ echo There are $countofmp3s mp3 files, $countofm4as m4a files, total is $totalau
 ```text
 There are 1 mp3 files, 27 m4a files, total is 28
 ```
+
+## Create multiple files using sequence
+
+```fish
+touch test(seq 5 10).txt
+```
+
+Creates 6 text files `test5.txt`, `test6.txt` up to `test10.txt`
+
+## Simple counter
+
+```fish
+set i 0
+
+while test $i -lt 3
+    echo "slide $i"
+    set i (math $i + 1)
+end
+```
+
+## Loop through all files in a current directory
+
+```fish
+for file in *.txt
+    echo "file: $file"
+end
+```
